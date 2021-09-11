@@ -139,6 +139,32 @@ BJoin class >> buildSelectText [
 ]
 
 { #category : #adding }
+BJoin class >> fullSqlWhere: whereClause orderBy: orderByClause page: pageNumber rowsPerPage: rowsPerPage [
+
+	| fullSql |
+
+	fullSql := self sqlSelectText.
+
+	whereClause ifNotEmpty: [
+		fullSql := fullSql, ' AND (', whereClause, ')' 
+	].		
+
+	sqlGroupBy ifNotEmpty: [
+		fullSql := fullSql, sqlGroupBy 
+	].		
+
+	orderByClause ifNotEmpty:[
+		fullSql := fullSql, ' ORDER BY ', orderByClause 
+	].		
+
+	pageNumber > 0 ifTrue: [  
+		fullSql := fullSql, (self buildOffsetLimitfromPage: pageNumber rowsPerPage: rowsPerPage)  
+	].
+
+	^ fullSql 
+]
+
+{ #category : #adding }
 BJoin class >> joinTexts [
 
 	^ joinTexts ifNil: [ joinTexts := Dictionary new ]
@@ -166,81 +192,6 @@ BJoin class >> reset [
 	aggregateColumns := nil.
 	sqlSelectText := nil.
 	sqlGroupBy := nil
-
-]
-
-{ #category : #adding }
-BJoin class >> selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause [
-
-	| connection objectCollection |
-	connection := self connectionClass open.
-	[  
-		objectCollection := self selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause using: connection.
-	]
-	ensure: [ connection close ].
-	
-	^ objectCollection  
-	
-]
-
-{ #category : #adding }
-BJoin class >> selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause page: pageNumber rowsPerPage: rowsPerPage [ 
-
-	| connection objectCollection |
-	connection := self connectionClass open.
-	[  
-		objectCollection := self selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause page: pageNumber rowsPerPage: rowsPerPage using: connection.
-	]
-	ensure: [ connection close ].
-	
-	^ objectCollection  
-	
-]
-
-{ #category : #adding }
-BJoin class >> selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause page: pageNumber rowsPerPage: rowsPerPage using: aConnection [
-
-	| fullSql objectCollection newInstance bindings cursor |
-
-	fullSql := self sqlSelectText.
-
-	whereClause ifNotEmpty: [
-		fullSql := fullSql, ' AND (', whereClause, ')' 
-	].		
-
-	sqlGroupBy ifNotEmpty: [
-		fullSql := fullSql, sqlGroupBy 
-	].		
-
-	orderByClause ifNotEmpty:[
-		fullSql := fullSql, ' ORDER BY ', orderByClause 
-	].		
-
-	pageNumber > 0 ifTrue: [  
-		fullSql := fullSql, self buildOffsetLimitfromPage: pageNumber rowsPerPage: rowsPerPage  
-	].
-
-	bindings := OrderedCollection new.
-	bindingBlock ifNotNil: [  
-		bindingBlock value: bindings
-	].
-
-	cursor := aConnection execute: fullSql with: bindings. 
-	objectCollection := OrderedCollection new.
-
-	cursor rows do: [ :row |  
-		newInstance := self new.
-		newInstance setMembersFromRow: row. 
-		objectCollection add: newInstance
-	].	
-
-	^ objectCollection
-]
-
-{ #category : #adding }
-BJoin class >> selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause using: aConnection [
-
-	^ self selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause page: 0 rowsPerPage: 0 using: aConnection
 
 ]
 

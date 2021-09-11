@@ -255,6 +255,28 @@ BTable class >> deleteWhere: whereClause bindingBlock: bindingBlock using: aConn
 ]
 
 { #category : #'as yet unclassified' }
+BTable class >> fullSqlWhere: whereClause orderBy: orderByClause page: pageNumber rowsPerPage: rowsPerPage [
+
+	| fullSql |
+
+	fullSql := self sqlTextSelectWhere.
+
+	whereClause ifNotEmpty: [
+		fullSql := fullSql, ' AND (', whereClause, ')' 
+	].		
+
+	orderByClause ifNotEmpty:[
+		fullSql := fullSql, ' ORDER BY ', orderByClause 
+	].		
+
+	pageNumber > 0 ifTrue: [  
+		fullSql := fullSql, (self buildOffsetLimitfromPage: pageNumber rowsPerPage: rowsPerPage)  
+	].
+
+	^ fullSql 
+]
+
+{ #category : #'as yet unclassified' }
 BTable class >> metaDataSetColumnAliases [
 	
 	"overridden by subclass if aliases are required - load them here"
@@ -304,83 +326,6 @@ BTable class >> selectById: anId using: aConnection [
 	].
 
 	^ newObject 	
-]
-
-{ #category : #'as yet unclassified' }
-BTable class >> selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause [
-
-	| connection objectCollection |
-
-	connection := self connectionClass open.
-	[  
-		objectCollection := self selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause using: connection
-	] 
-	ensure: [ connection close ].
-
-	^ objectCollection
-
-]
-
-{ #category : #'as yet unclassified' }
-BTable class >> selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause page: pageNumber rowsPerPage: rowsPerPage using: aConnection [
-
-	| fullSql newObject objectCollection bindings cursor |
-
-	fullSql := self sqlTextSelectWhere.
-
-	whereClause ifNotEmpty: [
-		fullSql := fullSql, ' AND (', whereClause, ')' 
-	].		
-
-	orderByClause ifNotEmpty:[
-		fullSql := fullSql, ' ORDER BY ', orderByClause 
-	].		
-
-	pageNumber > 0 ifTrue: [  
-		fullSql := fullSql, self buildOffsetLimitfromPage: pageNumber rowsPerPage: rowsPerPage  
-	].
-
-	bindings := OrderedCollection new.
-	bindingBlock ifNotNil: [  
-		bindingBlock value: bindings
-	].
-
-	cursor := aConnection execute: fullSql with: bindings. 
-
-	objectCollection := OrderedCollection new.	
-	cursor rows do: [ :row |  
-		newObject := self new.
-		newObject rowid: (row at: 'rowid').
-		newObject active: 'Y'.
-		newObject created: (row at: 'created').
-		newObject setMembersFromRow: row.
-		objectCollection add: newObject.	
-	].
-
-	^ objectCollection
-]
-
-{ #category : #'as yet unclassified' }
-BTable class >> selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause page: page rowsPerpage: rowsPerPage [
-
-	| connection objectCollection |
-
-	connection := self connectionClass open.
-	[  
-		objectCollection := self selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause page: page rowsPerPage: rowsPerPage using: connection
-	] 
-	ensure: [ connection close ].
-
-	^ objectCollection
-
-]
-
-{ #category : #'as yet unclassified' }
-BTable class >> selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause using: aConnection [
-
-	^ self selectWhere: whereClause whereBindingBlock: bindingBlock orderBy: orderByClause page: 0 rowsPerPage: 0 using: aConnection
-
-
 ]
 
 { #category : #'as yet unclassified' }
