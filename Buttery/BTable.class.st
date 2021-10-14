@@ -493,6 +493,12 @@ BTable >> insertUsing: aConnection [
 	self rowid: (idRows first at: 'lid')
 ]
 
+{ #category : #initialization }
+BTable >> isNew [
+	^ rowid isNil
+
+]
+
 { #category : #accessing }
 BTable >> rowid [
 	^ rowid
